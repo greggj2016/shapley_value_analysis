@@ -3,6 +3,7 @@ import pandas as pd
 import pdb
 import argparse
 import shap
+import os
 from sklearn.model_selection import KFold
 from scipy.stats import pearsonr
 from copy import deepcopy as COPY
@@ -13,6 +14,12 @@ parser.add_argument('--method', nargs = 1, type = str, action = "store", dest = 
 args = parser.parse_args()
 file = (args.file)[0]
 method = (args.method)[0]
+
+note = file.split("/")[2].split(".")
+void = note.pop()
+test_path = "permutation_scores/" + method + "_" + "".join(note) + ".txt"
+if os.path.exists(test_path):
+    exit()
 
 def k_fold_CV(data, k, main_col_name, num_layers, alpha):
     X = data[0]
@@ -41,7 +48,7 @@ y_test_sets = [y[indices[1]] for indices in index_sets]
 
 if method == "SVM":
     from sklearn.svm import SVC as model
-    custom_parameter_values = {"C": 1E8, "probability": True, "tol": 1E-8}
+    custom_parameter_values = {"C": 1E8, "probability": True, "tol": 1E-5}
 if method == "RF":
     from sklearn.ensemble import RandomForestClassifier as model
     custom_parameter_values = {}
@@ -57,10 +64,9 @@ for i in range(5):
     test_accuracy.append(pearsonr(y_test_sets[i], y_est)[0])
 
 mean_acc = np.mean(test_accuracy)
-if mean_acc <= 0.99:
-    low_acc_file = open("low_accuracy_datasets.txt", "a")
-    low_acc_file.write(file)
-    low_acc_file.close()
+path = "mean_accuracies/" + method + "_" + "".join(note) + "_" + str(mean_acc) + ".txt"
+low_acc_file = open(path, "w")
+low_acc_file.close()
 
 permutation_scores = []
 fitter = model(**custom_parameter_values)
@@ -76,9 +82,6 @@ fitted_function = lambda x: fitter.predict_proba(x)[:,1]
 reference = np.zeros((100, len(X[0])))
 explainer = shap.KernelExplainer(fitted_function, reference)
 shap_values = explainer.shap_values(X, nsamples = 100)
-
-note = file.split("/")[2].split(".")
-void = note.pop()
 
 permutation_scores = pd.DataFrame(permutation_scores)
 path = "permutation_scores/" + method + "_" + "".join(note) + ".txt"
