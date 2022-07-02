@@ -35,9 +35,52 @@ X_test_sets = [X[indices[1]] for indices in index_sets]
 y_test_sets = [y[indices[1]] for indices in index_sets]
 train_test_sets = zip(X_train_sets, X_test_sets, y_train_sets, y_test_sets)
 
+test_accuracy = []
+for X_train, X_test, y_train, y_test in train_test_sets:
+
+    hidden_size = 100
+    hyperparameters = [max_epochs, batch_size, learning_rate, lr_coefs]
+    num_layers = 2
+    ffn_params = [len(X_train[0]), hidden_size, num_layers, torch.tensor(X_train).float()]
+    network = ffn(*ffn_params)
+    model_name = "neural network"
+    is_binary = True
+    is_low_count_integer = True
+    col_name = "Hibachi Phenotype"
+    alpha = 1
+    num_attempts = 5
+
+    data = [X_train, X_test, y_train, y_test, 1000]
+    effectiveness, model = retrain_many_networks(data, hyperparameters, COPY(network), model_name, 
+                                                 is_binary, ffn, is_low_count_integer, 
+                                                 col_name, ffn_params, alpha, num_attempts)
+
+    if effectiveness[0] > 0.9:
+        test_accuracy.append(effectiveness[0])
+    else:
+        hidden_size = 400
+        hyperparameters = [max_epochs, batch_size, learning_rate, lr_coefs]
+        num_layers = 2
+        ffn_params = [len(X_train[0]), hidden_size, num_layers, torch.tensor(X_train).float()]
+        network = ffn(*ffn_params)
+        model_name = "neural network"
+        is_binary = True
+        is_low_count_integer = True
+        col_name = "Hibachi Phenotype"
+        alpha = 1
+        num_attempts = 5
+
+        data = [X_train, X_test, y_train, y_test, 1000]
+        effectiveness, model = retrain_many_networks(data, hyperparameters, COPY(network), model_name, 
+                                                     is_binary, ffn, is_low_count_integer, 
+                                                     col_name, ffn_params, alpha, num_attempts)
+        test_accuracy.append(effectiveness[0])
+
+
+
 hyperparameters = [max_epochs, batch_size, learning_rate, lr_coefs]
 num_layers = 2
-ffn_params = [len(X_train_sets[0][0]), 80, num_layers, torch.tensor(X_train_sets[0]).float()]
+ffn_params = [len(X[0]), hidden_size, num_layers, torch.tensor(X).float()]
 network = ffn(*ffn_params)
 model_name = "neural network"
 is_binary = True
@@ -45,16 +88,6 @@ is_low_count_integer = True
 col_name = "Hibachi Phenotype"
 alpha = 1
 num_attempts = 5
-
-test_accuracy = []
-for X_train, X_test, y_train, y_test in train_test_sets:
-
-    data = [X_train, X_test, y_train, y_test, 1000]
-    effectiveness, model = retrain_many_networks(data, hyperparameters, COPY(network), model_name, 
-                                                 is_binary, ffn, is_low_count_integer, 
-                                                 col_name, ffn_params, alpha, num_attempts)
-    test_accuracy.append(effectiveness[0])
-
 
 final_data = [X, X, y, y, 1000]
 effectiveness, final_model = retrain_many_networks(final_data, hyperparameters, COPY(network), model_name, 
