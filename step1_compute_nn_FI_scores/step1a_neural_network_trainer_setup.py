@@ -15,6 +15,9 @@ if not os.path.exists("SHAP_values"):
     os.mkdir("SHAP_values")
 if not os.path.exists("permutation_scores"):
     os.mkdir("permutation_scores")
+if not os.path.exists("mean_accuracies"):
+    os.mkdir("mean_accuracies")
+
 data_file_names = ["../datasets/" + name for name in os.listdir("../datasets")]
 
 def get_template(prefix):

@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import torch
+from sklearn.model_selection import KFold
+from copy import deepcopy as COPY
 import pdb
 import argparse
 
@@ -23,28 +25,48 @@ batch_size = 1000
 n_layers = 0
 learning_rate = 0.02
 lr_coefs = [1, 0.1, 0.01, 0.001, 0.0001]
-train_indices = np.random.choice(np.arange(len(X)), size = int(0.8*len(X)), replace = False) 
-test_indices = np.setdiff1d(np.arange(len(X)), train_indices)
-X_train = X[train_indices] 
-y_train = y[train_indices]
-X_test = X[test_indices]
-y_test = y[test_indices]
-data = [X_train, X_test, y_train, y_test, 1000]
+
+kf = KFold(n_splits = 5, shuffle = True)
+kf.get_n_splits(X)
+index_sets = [indices for indices in kf.split(X)]
+X_train_sets = [X[indices[0]] for indices in index_sets]
+y_train_sets = [y[indices[0]] for indices in index_sets]
+X_test_sets = [X[indices[1]] for indices in index_sets]
+y_test_sets = [y[indices[1]] for indices in index_sets]
+train_test_sets = zip(X_train_sets, X_test_sets, y_train_sets, y_test_sets)
+
 hyperparameters = [max_epochs, batch_size, learning_rate, lr_coefs]
 num_layers = 2
-ffn_params = [len(X_train[0]), 80, num_layers, torch.tensor(X_train).float()]
+ffn_params = [len(X_train_sets[0][0]), 80, num_layers, torch.tensor(X_train_sets[0]).float()]
 network = ffn(*ffn_params)
-model_name = "LR"
+model_name = "neural network"
 is_binary = True
 is_low_count_integer = True
-col_name = "HF"
+col_name = "Hibachi Phenotype"
 alpha = 1
 num_attempts = 5
-effectiveness, model = retrain_many_networks(data, hyperparameters, network, model_name, 
-                                             is_binary, ffn, is_low_count_integer, 
-                                             col_name, ffn_params, alpha, num_attempts)
+
+test_accuracy = []
+for X_train, X_test, y_train, y_test in train_test_sets:
+
+    data = [X_train, X_test, y_train, y_test, 1000]
+    effectiveness, model = retrain_many_networks(data, hyperparameters, COPY(network), model_name, 
+                                                 is_binary, ffn, is_low_count_integer, 
+                                                 col_name, ffn_params, alpha, num_attempts)
+    test_accuracy.append(effectiveness[0])
+
+
+final_data = [X, X, y, y, 1000]
+effectiveness, final_model = retrain_many_networks(final_data, hyperparameters, COPY(network), model_name, 
+                                                   is_binary, ffn, is_low_count_integer, 
+                                                   col_name, ffn_params, alpha, num_attempts)
 
 notes = file.split("/")[2].split(".")
 void = notes.pop()
 path = "trained_networks/" + "".join(notes) + ".pth"
-torch.save(model.state_dict(), path)
+torch.save(final_model.state_dict(), path)
+
+mean_acc = np.mean(test_accuracy)
+path = "mean_accuracies/" + "neural_network_" + "".join(notes) + "_" + str(mean_acc) + ".txt"
+low_acc_file = open(path, "w")
+low_acc_file.close()
