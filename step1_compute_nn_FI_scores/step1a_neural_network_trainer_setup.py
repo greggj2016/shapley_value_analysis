@@ -17,6 +17,9 @@ if not os.path.exists("permutation_scores"):
     os.mkdir("permutation_scores")
 if not os.path.exists("mean_accuracies"):
     os.mkdir("mean_accuracies")
+if not os.path.exists("test_fold_indices"):
+    os.mkdir("test_fold_indices")
+
 
 data_file_names = ["../datasets/" + name for name in os.listdir("../datasets")]
 
